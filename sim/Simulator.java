@@ -70,12 +70,12 @@ class Simulator {
 	    double gui_fps = 1000.0 / gui_refresh;
 	    System.err.println("GUI: enabled  (up to " + gui_fps + " FPS)");
 	}
-	int[] score = new int[] {0, 0};
+	int score = 0;
 	int timeout = -1;
 	try {
-	    timeout = play(group, group_2, g_class, class_2,
+	    timeout = play(group, g_class, sequencer, s_class,
 			   gui, gui_manual_refresh_on_cutter,
-			   gui_refresh, cpu_time_ms, score, 11, 8, 5);
+			   gui_refresh, cpu_time_ms, score);
 	} catch (Exception e) {
 	    if (tournament_path != null) throw e;
 	    System.err.println("Exception during play: " + e.getMessage());
@@ -85,36 +85,34 @@ class Simulator {
 	}
 	if (tournament_path == null) {
 	    System.err.println("Player " + group + " scored " + score[0]);
-	    System.err.println("Player " + group_2 + " scored " + score[1]);
 	    if      (timeout == 0) System.err.println("1st player timed out!");
-	    else if (timeout == 1) System.err.println("2nd player timed out!");
 	} else {
 	    PrintStream file = new PrintStream(new FileOutputStream(tournament_path, true));
-	    file.println(group + "," + score[0] + "," + (timeout == 0 ? "yes" : "no") + "," +
-			 group_2 + "," + score[1] + "," + (timeout == 1 ? "yes" : "no"));
+	    file.println(group + "," + score[0] + "," + (timeout == 0 ? "yes" : "no"));			 
 	    file.close();
 	}
 	System.exit(0);
 }
 
 private static int play(String group,
-			String group_2,
 			Class <Player> g_class,
-			Class <Player> class_2,
+			String sequencer,
+			Class <Sequencer> s_class,
 			boolean gui,
 			boolean gui_manual_refresh_on_cutter,
 			long gui_refresh,
 			long cpu_time_ms,
-			int[] score,
-			int ... cutter_sizes) throws Exception
+			int score) throws Exception
 {
     Shape[] cutters_retry = new Shape [5];
     List <Move> moves = gui ? new ArrayList <Move> () : null;
     // initialize player
     Player player = new Player;
+    Sequencer generator = new Sequencer;
     Timer timer = new Timer();
     timer.start();
     final Class <Player> player_class = g_class;
+    final Class <Sequencer> sequencer_class = s_class;
     try {
 	player = timer.call(new Callable <Player> () {
 
@@ -123,7 +121,18 @@ private static int play(String group,
 		    return player_class.newInstance();
 		}
 	    }, cpu_time_ms);
-    } catch (TimeoutException e) { return p; }
+    } catch (TimeoutException e) { return g_class; }
+
+    try {
+	generator = timer.call(new Callable <Sequencer> () {
+
+		public Sequencer call() throws Exception
+		{
+		    return sequencer_class.newInstance();
+		}
+	    }, cpu_time_ms);
+    } catch (TimeoutException e) { return s_class; }
+
 
     // initialise GUI
     HTTPServer server = null;
@@ -150,52 +159,34 @@ private static int play(String group,
     System.err.println("Construction begins ...");
     do {
 	// get next build request
-	Building 
-	// call the cut() method of player
+	Building request = generator.next();
+	// call the play method of player
 	Player player = players[p];
-	int land_cut = land.countCut();
 	long timeout_ms = 0;
 	if (cpu_time_ms > 0) {
 	    long timeout_ns = cpu_time_ms * 1000000 - timer[p].time();
 	    if (timeout_ns <= 0) return p;
 	    timeout_ms = (timeout_ns / 1000000) + 1;
 	}
-	Move cut = null;
+	Move move = null;
 	try {
-	    cut = timer[p].call(new Callable <Move> () {
+	    move = timer[p].call(new Callable <Move> () {
 
 		    public Move call() throws Exception
 		    {
-			return player.cut(land, your_cutters, oppo_cutters);
+			return player.play(land));
 		    }
 		}, timeout_ms);
 	} catch (TimeoutException e) { return p; }
-	// check if player cut the Land
-	if (land.countCut() != land_cut)
-	    throw new RuntimeException("Player cut the simulator land");
-	// check if shape is valid
-	List <Shape> cutters = p == 0 ? cutters_1 : cutters_2;
-	if (cut.shape < 0 || cut.shape >= cutters.size())
-	    throw new RuntimeException("Invalid cutter shape");
-	Shape shape = cutters.get(cut.shape);
-	Shape[] shape_rotations = shape.rotations();
+	Building[] building_rotations = request.rotations();
 	// check if rotation is valid
-	if (cut.rotation < 0 || cut.rotation >= shape_rotations.length)
-	    throw new RuntimeException("Invalid cutter rotation");
-	shape = shape_rotations[cut.rotation];
-	// validate first cut of first player
-	if (score[0] + score[1] == 0) {
-	    int min_cutter_size = Integer.MAX_VALUE;
-	    for (int cutter_size : cutter_sizes)
-		if (min_cutter_size > cutter_size)
-		    min_cutter_size = cutter_size;
-	    if (shape.size() != min_cutter_size)
-		throw new RuntimeException("Invalid initial cut size: "
-					   + shape.size() + " (should be " + min_cutter_size + ")");
-	}
+	if (move.rotation < 0 || move.rotation >= building_rotations.length)
+	    throw new RuntimeException("Invalid building rotation");
+	Building rotated_building = building_rotations[move.rotation];
+	// validate building placement
 	// cut a piece and update score
-	if (!land.cut(shape, cut.point))
-	    throw new RuntimeException("Invalid cut");
+	if (!land.build(rotated_building, move.location))
+	    throw new RuntimeException("Invalid building placement");
 	score[p] += shape.size();
 	System.err.println("Player " + (p + 1) + " cut "
 			   + shape.size() + " pieces!");
