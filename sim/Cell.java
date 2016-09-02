@@ -4,17 +4,23 @@ import java.util.*;
 
 public class Cell implements Comparable <Cell> {
 
-    public enum landType {EMPTY, BUILDING, PARK, WATER, ROAD};
-
+    public enum Type {EMPTY, RESIDENCE, FACTORY, PARK, WATER, ROAD};
+    private static final int default_land_side = 50;
     public final int i;  // row
     public final int j;  // column
-    protected landType t;
+    public Cell previous;
+    protected Type type;
 
     public Cell(int i, int j) {
-	this(i,j,landType.EMPTY);
+	this(i,j,Cell.Type.EMPTY);
     }
 
-    public Cell(int i, int j, landType t)
+    public Cell(int i, int j, Cell previous) {
+	this(i,j,Cell.Type.EMPTY);
+	this.previous = previous;
+    }
+
+    public Cell(int i, int j, Type type)
 	{
 	    if (i < 0)
 		throw new IllegalArgumentException("Negative row");
@@ -22,50 +28,58 @@ public class Cell implements Comparable <Cell> {
 		throw new IllegalArgumentException("Negative column");
 	    this.i = i;
 	    this.j = j;
-	    this.t = t;
+	    this.type = type;
 	}    
 
     public boolean isEmpty() {
-	return (t == landType.EMPTY);
+	return (type == Type.EMPTY);
     }
 
     public boolean isRoad() {
-	return (t == landType.ROAD);
+	return (type == Type.ROAD);
     }
 
     public boolean isWater() {
-	return (t == landType.WATER);
+	return (type == Type.WATER);
     }
 
-    public boolean isPark() {
-	return (t == landType.PARK);
+    public boolean isPark() {	
+	return (type == Type.PARK);
+    }
+
+    public boolean isFactory() {
+	return (type == Type.FACTORY);
     }
 
     public void buildRoad() {
-	buildType(landType.ROAD);
+	buildType(Type.ROAD);
     }
 
     public void buildWater() {
-	buildType(landType.WATER);
+	buildType(Type.WATER);
     }
 
     public void buildPark() {
-	buildType(landType.PARK);
+	buildType(Type.PARK);
     }
 
-    public void buildBuilding() {
-	buildType(landType.BUILDING);
+    public void buildResidence() {
+	buildType(Type.RESIDENCE);
     }
 
-    private void buildType(landType t) {
-	if (this.t != landType.EMPTY) {
-	    throw new RunTimeException("Land not empty");
+    public void buildFactory() {
+	buildType(Type.FACTORY);
+    }
+
+    private void buildType(Type t) {
+	if (type != Type.EMPTY) {
+	    throw new RuntimeException("Land not empty. Contains " + type);
 	}
-	this.t = t;
+	this.type = t;
     }
 
-    public boolean isType(landType t) {
-	return (this.t == t);
+    public boolean isType(Type t) {
+	return (this.type == t);
     }
 
     public boolean equals(Cell p)
@@ -80,11 +94,11 @@ public class Cell implements Comparable <Cell> {
 	return false;
     }
 
-    public int hashCode()
+    /*    public int hashCode()
     {
 	int f = 0x9e3779b1;
 	return ((i * f) ^ j) * f;
-    }
+	}*/
 
     public int compareTo(Cell p)
     {
@@ -97,31 +111,40 @@ public class Cell implements Comparable <Cell> {
     }
 
     public Cell[] neighbors() {
-	return neighbors(50);
+	return neighbors(default_land_side);
     }
 
     public Cell[] neighbors(int m)
     {
- 	int n = (i > 0 ? 1 : 0) + (i < m ? 1 : 0)
-	    + (j > 0 ? 1 : 0) + (j < m ? 1 : 0);
+ 	int n = (i > 0 ? 1 : 0) + (i < m-1 ? 1 : 0)
+	    + (j > 0 ? 1 : 0) + (j < m-1 ? 1 : 0);
 	Cell[] points = new Cell [n];
 	if (i > 0) points[--n] = new Cell(i - 1, j);
-	if (i < m) points[--n] = new Cell(i + 1, j);
+	if (i < m-1) points[--n] = new Cell(i + 1, j);
 	if (j > 0) points[--n] = new Cell(i, j - 1);
-	if (j < m) points[--n] = new Cell(i, j + 1);
+	if (j < m-1) points[--n] = new Cell(i, j + 1);
 	return points;
-    } 
-
-    public static boolean isBuilding(Set<Cell> points) {
-	return isBuilding(points.toArray(new Cell[points.size()]));
     }
 
-    public static boolean isBuilding(Cell[] points)
+    public static String toString(Set<Cell> points) {
+	StringBuffer buf = new StringBuffer();
+	for (Cell p : points) {
+	    buf.append(";");
+	    buf.append(p.i + "," + p.j);
+	}
+	return buf.toString();
+    }
+
+    public static boolean isConnected(Set<Cell> points, int side) {return isConnected(points.toArray(new Cell[points.size()]), side);}
+    public static boolean isConnected(Set<Cell> points) {return isConnected(points, default_land_side);}
+    public static boolean isConnected(Cell[] points) {return isConnected(points, default_land_side);}
+    
+    public static boolean isConnected(Cell[] points, int side)
     {
 	if (points == null || points.length == 0)
 	    return false;
 	// add items in set and check uniqueness
-	HashSet <Cell> open = new HashSet <Cell> ();
+	Set <Cell> open = new HashSet <Cell> ();
 	for (Cell p : points)
 	    if (p == null || !open.add(p))
 		return false;
@@ -130,10 +153,16 @@ public class Cell implements Comparable <Cell> {
 	fringe.push(points[0]);
 	open.remove(points[0]);
 	do {
-	    for (Cell p : fringe.pop().neighbors())
+	    for (Cell p : fringe.pop().neighbors(side))
 		if (open.remove(p))
 		    fringe.push(p);
 	} while (!fringe.empty());
 	return open.isEmpty();
     }
+
+    public int hashCode() {
+	return i*100+j;
+    }
+
 }
+

@@ -4,7 +4,7 @@ import java.util.*;
 
 public class Building implements Iterable <Cell> {
 
-    public enum buildingType {FACTORY, RESIDENCE};
+    public enum Type {FACTORY, RESIDENCE};
 
     // cells in building (this rotation)
     private Set <Cell> cells;
@@ -15,23 +15,22 @@ public class Building implements Iterable <Cell> {
     // circular list of rotations
     private Building rotate;
 
-    
-
-    private final building_type;
+    public final Type type;
 
     // internal constructor
-    *private Building(Set <Cell> cells, Building rotate)
-    {
+    private Building(Set <Cell> cells, Building rotate, Type type) {
 	this.cells = cells;
 	this.rotate = rotate;
+	this.type = type;
 	hash = cells.hashCode();
     }
 
     // generate building and its rotations
-    private void generateBuilding(Cell[] cells)
-    {
-	if (!Cell.isBuilding(cells))
-	    throw new IllegalArgumentException("Not a building");
+
+    public Building(Cell[] cells, Type type) {
+	this.type = type;
+	if (!Cell.isConnected(cells))
+	    throw new IllegalArgumentException("Cells not connected");
 	int min_i = Integer.MAX_VALUE;
 	int min_j = Integer.MAX_VALUE;
 	int max_i = Integer.MIN_VALUE;
@@ -56,27 +55,45 @@ public class Building implements Iterable <Cell> {
 	hash = cells_0.hashCode();
 	if (cells_0.equals(cells_1))
 	    rotate = this;
-	else if (cells_0.equals(cells_2))
-	    rotate = new Building(cells_1, this);
+	else if (cells_0.equals(cells_2)) 
+	    rotate = new Building(cells_1, this, type);
 	else
 	    rotate = new Building(cells_1,
 				  new Building(cells_2,
-					       new Building(cells_3, this)));
+					       new Building(cells_3, this, type), type), type);
+    }
+
+    private boolean valid() {
+	if (type == Type.FACTORY) {
+	    int mini = 0;
+	    int maxi = Integer.MAX_VALUE;
+	    int minj = 0;
+	    int maxj = Integer.MAX_VALUE;
+	    for (Cell p : cells) {
+		if (p.i < mini)
+		    mini = p.i;
+		if (p.i > maxi)
+		    maxi = p.i;
+		if (p.j < minj)
+		    minj = p.j;
+		if (p.j > maxj)
+		    maxj = p.j;
+	    }
+	    return (maxi - mini <= 5) && (maxj - minj <= 5);
+	}
+	else if (type == Type.RESIDENCE) 
+	    return cells.size() == 5;
+	else
+	    return false;
     }
 
     // size of building
-    public int size()
-    {
+    public int size() {
 	return cells.size();
     }
 
-    public buildingType getType() {
-	return building_type;
-    }
-
     // check if buildings are equal
-    public boolean equals(Building building)
-    {
+    public boolean equals(Building building) {
 	if (cells.size() == building.cells.size()) {
 	    Building rot = this;
 	    do {
@@ -89,9 +106,10 @@ public class Building implements Iterable <Cell> {
 	return false;
     }
 
+    public Type getType() {return type;}
+
     // generic equal
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
 	if (obj instanceof Building)
 	    return equals((Building) obj);
 	return false;
@@ -104,8 +122,7 @@ public class Building implements Iterable <Cell> {
     }
 
     // generate array of rotated buildings
-    public Building[] rotations()
-    {
+    public Building[] rotations() {
 	Building rot = this;
 	int r = 0;
 	do {
@@ -123,8 +140,7 @@ public class Building implements Iterable <Cell> {
     }
 
     // invariant to rotation order
-    public int hashCode()
-    {
+    public int hashCode() {
 	Building rot = this;
 	int hash = 0;
 	do {
@@ -135,23 +151,22 @@ public class Building implements Iterable <Cell> {
     }
 
     // convert building to string
-    public String toString(Cell q, boolean par)
-    {
+    public String toString(Cell q) {
 	StringBuffer buf = new StringBuffer();
-	boolean f = true;
 	for (Cell p : cells) {
-	    if (f) f = false;
-	    else buf.append(", ");
-	    if (par) buf.append("(");
-	    buf.append((p.i + q.i) + ", " + (p.j + q.j));
-	    if (par) buf.append(")");
+	    buf.append(";");
+	    buf.append((p.i + q.i) + "," + (p.j + q.j));
 	}
+	buf.append(";");
+	if (type == Type.RESIDENCE)
+	    buf.append(0);
+	else if (type == Type.FACTORY)
+	    buf.append(1);
 	return buf.toString();
     }
 
     // default convert to string
-    public String toString()
-    {
-	return toString(new Cell(0, 0), true);
+    public String toString() {
+	return toString(new Cell(0, 0));
     }
 }
