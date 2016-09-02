@@ -113,7 +113,6 @@ public class Player implements pentos.sim.Player {
 		    adjCells.add(q); 
 	    }
 	}
-	System.out.println(adjCells.size());
 	if (adjCells.isEmpty())
 	    return new HashSet<Cell>();
 	Cell tail = adjCells.get(gen.nextInt(adjCells.size()));
