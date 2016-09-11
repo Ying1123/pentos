@@ -6,11 +6,8 @@ import java.util.*;
 import javax.tools.*;
 import java.awt.Desktop;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 class Simulator {
-
-    private static boolean log = true;
 
     private static final String root = "pentos";
 
@@ -51,8 +48,6 @@ class Simulator {
 		} else if (args[a].equals("--gui")) gui = true;
 		else if (args[a].equals("--gui-mrc"))
 		    gui = gui_manual_refresh_on_cutter = true;
-		else if (args[a].equals("--nolog"))
-		    log = false;
 		else throw new IllegalArgumentException("Unknown argument: " + args[a]);
 	    g_class = load_player(group);
 	    s_class = load_sequencer(sequencer);
@@ -75,8 +70,8 @@ class Simulator {
 	    double gui_fps = 1000.0 / gui_refresh;
 	    System.err.println("GUI: enabled  (up to " + gui_fps + " FPS)");
 	}
-	AtomicInteger score = new AtomicInteger(0);
-	boolean timeout = false;
+	int score = 0;
+	int timeout = -1;
 	try {
 	    timeout = play(group, g_class, sequencer, s_class,
 			   gui, gui_manual_refresh_on_cutter,
@@ -89,18 +84,17 @@ class Simulator {
 	    System.exit(1);
 	}
 	if (tournament_path == null) {
-	    System.err.println("Player " + group + " scored " + score.get());
-	    if (timeout) 
-		System.err.println("Player timed out!");
+	    System.err.println("Player " + group + " scored " + score[0]);
+	    if      (timeout == 0) System.err.println("1st player timed out!");
 	} else {
 	    PrintStream file = new PrintStream(new FileOutputStream(tournament_path, true));
-	    file.println(group + "," + score.get() + "," + (timeout == true ? "yes" : "no"));			 
+	    file.println(group + "," + score[0] + "," + (timeout == 0 ? "yes" : "no"));			 
 	    file.close();
 	}
 	System.exit(0);
     }
 
-    private static boolean play(String group,
+    private static int play(String group,
 			    Class <Player> g_class,
 			    String sequencer,
 			    Class <Sequencer> s_class,
@@ -108,17 +102,17 @@ class Simulator {
 			    boolean gui_manual_refresh_on_cutter,
 			    long gui_refresh,
 			    long cpu_time_ms,
-			    AtomicInteger score) throws Exception
+			    int score) throws Exception
     {
 	int numRejects = 0;
 	List <Move> moves = gui ? new ArrayList <Move> () : null;
 	// initialize player
+	Player player = new Player;
+	Sequencer generator = new Sequencer;
 	Timer timer = new Timer();
 	timer.start();
 	final Class <Player> player_class = g_class;
 	final Class <Sequencer> sequencer_class = s_class;
-	Player player;
-	Sequencer generator;
 	try {
 	    player = timer.call(new Callable <Player> () {
 
@@ -127,7 +121,7 @@ class Simulator {
 			return player_class.newInstance();
 		    }
 		}, cpu_time_ms);
-	} catch (TimeoutException e) {return true;}
+	} catch (TimeoutException e) { return g_class; }
 
 	try {
 	    generator = timer.call(new Callable <Sequencer> () {
@@ -137,7 +131,7 @@ class Simulator {
 			return sequencer_class.newInstance();
 		    }
 		}, cpu_time_ms);
-	} catch (TimeoutException e) {return true;}
+	} catch (TimeoutException e) { return s_class; }
 
 
 	// initialise GUI
@@ -154,7 +148,8 @@ class Simulator {
 		URI uri = new URI("http://localhost:" + server.port());
 		Desktop.getDesktop().browse(uri);
 	    }
-	    gui(server, state(group, new AtomicInteger(0), 0, moves,
+	    gui(server, state(group, 0, 0, cutters_1, cuts_1,
+			      group_2, 0, 0, cutters_2, cuts_2,
 			      gui_refresh, -1));
 	}
 	// initialize score and termination
@@ -166,10 +161,11 @@ class Simulator {
 	    // get next build request
 	    Building request = generator.next();
 	    // call the play method of player
+	    Player player = players[p];
 	    long timeout_ms = 0;
 	    if (cpu_time_ms > 0) {
-		long timeout_ns = cpu_time_ms * 1000000 - timer.time();
-		if (timeout_ns <= 0) return true;
+		long timeout_ns = cpu_time_ms * 1000000 - timer[p].time();
+		if (timeout_ns <= 0) return p;
 		timeout_ms = (timeout_ns / 1000000) + 1;
 	    }
 	    Move move = null;
@@ -180,80 +176,62 @@ class Simulator {
 			    return player.play(request, land);
 			}
 		    }, timeout_ms);
-	    } catch (TimeoutException e) { return true; }
-	    if (!move.accept) {
+	    } catch (TimeoutException e) { return p; }
+	    Building[] building_rotations = request.rotations;
+
+	    if (!move.accept) 
 		numRejects++;
-		System.err.println("Player " + group + " rejected building request. " + numRejects + " of 3 rejected.");
-	    }
 	    else {
-		Building[] building_rotations = request.rotations();
 		// check if rotation is valid
 		if (move.rotation < 0 || move.rotation >= building_rotations.length)
 		    throw new RuntimeException("Invalid building rotation");
 		Building rotated_building = building_rotations[move.rotation];
 		// play move. First build auxiliary structures.
-		Iterator<Cell> water_cells = move.water.iterator();
-		Iterator<Cell> park_cells = move.park.iterator();
-		Iterator<Cell> road_cells = move.road.iterator();
-		String roadCells = "";		
-		while (water_cells.hasNext())
-		    land.buildWater(water_cells.next());
-		while (park_cells.hasNext())
-		    land.buildPark(park_cells.next());
-		while (road_cells.hasNext()){
-		    Cell x = road_cells.next();
-		    roadCells = roadCells + " " + x.i + "," + x.j;
+		for (p : Move.water) {
+		    land.buildWater(p);
 		}
-		//System.err.println("Player built road on cells" + roadCells);
-		road_cells = move.road.iterator();
-		while (road_cells.hasNext()) 
-		    land.buildRoad(road_cells.next());
+		for (p : Move.park) {
+		    land.buildPark(p);
+		}
+		for (p : Move.road) {
+		    land.buildRoad(p);
+		}
 		if (!land.validateRoads()) 
 		    throw new RuntimeException("Roads not connected");
-		String buildingCells = "";
-		for (Cell p : rotated_building)
-		    buildingCells = buildingCells + " (" + (p.i+move.location.i) + "," + (p.j+move.location.j) + ")";
+
 		int delta = land.build(rotated_building, move.location);
 		if (delta == -1)
 		    throw new RuntimeException("Invalid building placement");
-		if (log)
-		    System.err.println("Player " + group + " built building on cells" + buildingCells + " and scored " + delta + ".");
-		score.addAndGet(delta); 	
+		score += delta;
+
 		if (!gui) continue;
 		moves.add(move);
-		gui(server, state(group, score, timer.time(), moves, gui_refresh, -1));
+		gui(server, state(group, score, timer.time(), moves,
+				  gui_refresh));
 	    }
-	} while (numRejects < 3);
-	// final GUI frame
-	if (gui) {
-	    gui_refresh = -1;
-	    gui(server, state(group, score, timer.time(), moves, gui_refresh, -1));
-	    server.close();
-	}
-	return false;
+	} while (numRejects < 3)
+	    // final GUI frame
+	    if (gui) {
+		gui_refresh = -1;
+		gui(server, state(group, score, timer.time(), moves,
+				  gui_refresh, -1));
+		server.close();
+	    }
+	return -1;
     }
 
-    public static String state(String group, AtomicInteger score, long cpu, List <Move> moves, long gui_refresh, int highlight)
+    public static String state(String group, int score, long cpu, List <Shape> moves,
+			       long gui_refresh, int highlight)
     {
 	StringBuffer buf = new StringBuffer();
-	buf.append(group + "; " + score.get() + "; " + human_no_power(cpu / 1.0e9, 2) + "; " + moves.size() + "\n");
+	buf.append(group + ", " + score + ", " + human_no_power(cpu_1 / 1.0e9, 2) + "\n");
 	// send cuts
 	for (Move m : moves) {
-	    Building b = m.request.rotations()[m.rotation];
-	    buf.append("s");
-	    buf.append(b.toString(m.location));
-	    buf.append("\n");
-	    buf.append("s");
-	    buf.append(Cell.toString(m.road));
-	    buf.append("\n");
-	    buf.append("s");	    
-	    buf.append(Cell.toString(m.park));
-	    buf.append("\n");
-	    buf.append("s");	    
-	    buf.append(Cell.toString(m.water));
+	    Building s = .get(m.shape).rotations()[m.rotation];
+	    buf.append(s.toString(m.point, false));
 	    buf.append("\n");
 	}
-	buf.append(gui_refresh + "; " + highlight);
+	buf.append(gui_refresh + ", " + highlight);
 	return buf.toString();
     }
 
@@ -369,8 +347,8 @@ class Simulator {
     private static Class <Sequencer> load_sequencer(String sequencer) throws IOException, ReflectiveOperationException {
     
 	String sep = File.separator;
-	Set <File> sequencer_files = directory(root + sep + sequencer, ".java");
-	File class_file = new File(root + sep + sequencer + sep + "Sequencer.class");
+	Set <File> sequencer_files = directory(root + sep + seq + sep + sequencer, ".java");
+	File class_file = new File(root + sep + group + sep + "Sequencer.class");
 	long class_modified = class_file.exists() ? class_file.lastModified() : -1;
 	if (class_modified < 0 || class_modified < last_modified(sequencer_files) ||
 	    class_modified < last_modified(directory(root + sep + "sim", ".java"))) {
@@ -385,7 +363,7 @@ class Simulator {
 				  manager.getJavaFileObjectsFromFiles(sequencer_files)).call())
 		throw new IOException("Compilation failed");
 	    System.err.println("done!");
-	    class_file = new File(root + sep + sequencer + sep + "Sequencer.class");
+	    class_file = new File(root + sep + group + sep + "Sequencer.class");
 	    if (!class_file.exists())
 		throw new FileNotFoundException("Missing class file");
 	}
@@ -393,7 +371,7 @@ class Simulator {
 	if (loader == null)
 	    throw new IOException("Cannot find Java class loader");
 	@SuppressWarnings("rawtypes")
-	    Class raw_class = loader.loadClass(root + "." + sequencer + ".Sequencer");
+	    Class raw_class = loader.loadClass(root + "." + group + ".Sequencer");
 	@SuppressWarnings("unchecked")
 	    Class <Sequencer> sequencer_class = raw_class;
 	return sequencer_class;

@@ -13,7 +13,7 @@ public class Player implements pentos.sim.Player {
     private Set<Cell> road_cells = new HashSet<Cell>();
 
     public Move play(Building request, Land land) {
-	// find all valid building locations
+	// find all valid building locations and orientations
 	ArrayList <Move> moves = new ArrayList <Move> ();
 	for (int i = 0 ; i < land.side ; i++)
 	    for (int j = 0 ; j < land.side ; j++) {
@@ -25,14 +25,16 @@ public class Player implements pentos.sim.Player {
 			moves.add(new Move(true, request, p, ri, new HashSet<Cell>(), new HashSet<Cell>(), new HashSet<Cell>()));
 		}
 	    }
-	// choose a move at random and build road connecting to it
-	if (moves.isEmpty())
+	// choose a building placement at random
+	if (moves.isEmpty()) // reject if no valid placements
 	    return new Move(false);
 	else {
 	    Move chosen = moves.get(gen.nextInt(moves.size()));
+	    // get coordinates of building placement (position plus local building cell coordinates)
 	    Set<Cell> shiftedCells = new HashSet<Cell>();
 	    for (Cell x : chosen.request.rotations()[chosen.rotation])
 		shiftedCells.add(new Cell(x.i+chosen.location.i,x.j+chosen.location.j));
+	    // builda road to connect this building to perimeter
 	    Set<Cell> roadCells = findShortestRoad(shiftedCells, land);
 	    if (roadCells != null) {
 		chosen.road = roadCells;
@@ -46,12 +48,12 @@ public class Player implements pentos.sim.Player {
 		}
 		return chosen;
 	    }
-	    else
+	    else // reject placement if building cannot be connected by road
 		return new Move(false);
 	}
     }
     
-    // build shortest sequence of road cells to connect to chosen building placement. Building b is already rotated and coordinate shifted
+    // build shortest sequence of road cells to connect to a set of cells b
     private Set<Cell> findShortestRoad(Set<Cell> b, Land land) {
 	Set<Cell> output = new HashSet<Cell>();
 	boolean[][] checked = new boolean[land.side][land.side];
@@ -60,7 +62,7 @@ public class Player implements pentos.sim.Player {
 	for (Cell p : road_cells) {
 	    for (Cell q : p.neighbors()) {
 		if (!road_cells.contains(q) && land.unoccupied(q) && !b.contains(q)) 
-		    queue.add(new Cell(q.i,q.j,p));
+		    queue.add(new Cell(q.i,q.j,p)); // use tail field of cell to keep track of previous road cell during the search
 	    }
 	}      
 	// add border cells that don't have a road currently
@@ -79,7 +81,7 @@ public class Player implements pentos.sim.Player {
 	    Cell p = queue.remove();
 	    checked[p.i][p.j] = true;
 	    for (Cell x : p.neighbors()) {		
-		if (b.contains(x)) {
+		if (b.contains(x)) { // trace back through search tree to find path
 		    Cell tail = p;
 		    while (!b.contains(tail) && !road_cells.contains(tail) && !tail.equals(source)) {
 			output.add(new Cell(tail.i,tail.j));
@@ -101,7 +103,7 @@ public class Player implements pentos.sim.Player {
 	    return output;
     }
 
-    // walk n consecutive cells starting from a building to build a field or lake. Only if there isn't already a field or pond.
+    // walk n consecutive cells starting from a building. Used to build a random field or pond. 
     private Set<Cell> randomWalk(Set<Cell> b, Set<Cell> marked, Land land, int n) {
 	ArrayList<Cell> adjCells = new ArrayList<Cell>();
 	Set<Cell> output = new HashSet<Cell>();
