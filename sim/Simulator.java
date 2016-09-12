@@ -65,15 +65,16 @@ class Simulator {
 	if (tournament_path != null) {
 	    System.out.close();
 	    System.err.close();
-	} else if (!gui)
+	} else if (!gui && log)
 	    System.err.println("GUI: disabled");
-	else if (gui_refresh < 0)
+	else if (gui_refresh < 0 && log)
 	    System.err.println("GUI: enabled  (0 FPS)");
-	else if (gui_refresh == 0)
+	else if (gui_refresh == 0 && log)
 	    System.err.println("GUI: enabled  (maximum FPS)");
 	else {
 	    double gui_fps = 1000.0 / gui_refresh;
-	    System.err.println("GUI: enabled  (up to " + gui_fps + " FPS)");
+	    if (log)
+		System.err.println("GUI: enabled  (up to " + gui_fps + " FPS)");
 	}
 	AtomicInteger score = new AtomicInteger(0);
 	boolean timeout = false;
@@ -161,7 +162,14 @@ class Simulator {
 	// initialize land
 	int land_side = 50;
 	Land land = new Land(land_side);
-	System.err.println("Construction begins ...");
+	if (log)
+	    System.err.println("Initializing player...");
+	player.init();
+	if (log)
+	    System.err.println("Initializing sequencer...");
+	generator.init();
+	if (log)
+	    System.err.println("Construction begins ...");
 	do {
 	    // get next build request
 	    Building request = generator.next();
@@ -183,7 +191,8 @@ class Simulator {
 	    } catch (TimeoutException e) { return true; }
 	    if (!move.accept) {
 		numRejects++;
-		System.err.println("Player " + group + " rejected building request. " + numRejects + " of 3 rejected.");
+		if (log)
+		    System.err.println("Player " + group + " rejected building request. " + numRejects + " of 3 rejected.");
 	    }
 	    else {
 		Building[] building_rotations = request.rotations();
@@ -347,7 +356,8 @@ class Simulator {
 	    StandardJavaFileManager manager = compiler.
 		getStandardFileManager(null, null, null);
 	    long files = player_files.size();
-	    System.err.print("Compiling " + files + " .java files ... ");
+	    if (log)
+		System.err.print("Compiling " + files + " .java files ... ");
 	    if (!compiler.getTask(null, manager, null, null, null,
 				  manager.getJavaFileObjectsFromFiles(player_files)).call())
 		throw new IOException("Compilation failed");
@@ -380,11 +390,13 @@ class Simulator {
 	    StandardJavaFileManager manager = compiler.
 		getStandardFileManager(null, null, null);
 	    long files = sequencer_files.size();
-	    System.err.print("Compiling " + files + " .java files ... ");
+	    if (log)
+		System.err.print("Compiling " + files + " .java files ... ");
 	    if (!compiler.getTask(null, manager, null, null, null,
 				  manager.getJavaFileObjectsFromFiles(sequencer_files)).call())
 		throw new IOException("Compilation failed");
-	    System.err.println("done!");
+	    if (log)
+		System.err.println("done!");
 	    class_file = new File(root + sep + sequencer + sep + "Sequencer.class");
 	    if (!class_file.exists())
 		throw new FileNotFoundException("Missing class file");

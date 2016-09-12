@@ -7,6 +7,7 @@ public interface Player {
     // point coordinates must be positive the cutters
     // chosen before are shown are shown (normalized)
 
+    public void init();
     public Move play(Building request, Land land);
 
 }

@@ -6,7 +6,11 @@ import pentos.sim.Cell;
 
 public class Sequencer implements pentos.sim.Sequencer {
 
-    private Random gen = new Random();
+    private Random gen;
+
+    public void init() {
+	gen = new Random();
+    }
     
     public Building next() {
 	if (gen.nextInt(10) < 1)

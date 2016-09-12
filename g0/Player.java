@@ -12,6 +12,10 @@ public class Player implements pentos.sim.Player {
     private Random gen = new Random();
     private Set<Cell> road_cells = new HashSet<Cell>();
 
+    public void init() { // function is called once at the beginning before play is called
+
+    }
+    
     public Move play(Building request, Land land) {
 	// find all valid building locations and orientations
 	ArrayList <Move> moves = new ArrayList <Move> ();
