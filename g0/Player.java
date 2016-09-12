@@ -43,7 +43,7 @@ public class Player implements pentos.sim.Player {
 	    if (roadCells != null) {
 		chosen.road = roadCells;
 		road_cells.addAll(roadCells);
-		if (request.type == Building.Type.RESIDENCE) {
+		if (request.type == Building.Type.RESIDENCE) { // for residences, build random ponds and fields connected to it
 		    Set<Cell> markedForConstruction = new HashSet<Cell>();
 		    markedForConstruction.addAll(roadCells);
 		    chosen.water = randomWalk(shiftedCells, markedForConstruction, land, 4);
@@ -70,7 +70,7 @@ public class Player implements pentos.sim.Player {
 	    }
 	}      
 	// add border cells that don't have a road currently
-	Cell source = new Cell(Integer.MAX_VALUE,Integer.MAX_VALUE);
+	Cell source = new Cell(Integer.MAX_VALUE,Integer.MAX_VALUE); // dummy cell to serve as road connector to perimeter cells
 	for (int z=0; z<land.side; z++) {
 	    if (land.unoccupied(0,z) && !b.contains(new Cell(0,z)))
 		queue.add(new Cell(0,z,source));
