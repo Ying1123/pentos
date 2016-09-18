@@ -63,7 +63,7 @@ public class Building implements Iterable <Cell> {
 					       new Building(cells_3, this, type), type), type);
     }
 
-    private boolean valid() {
+    public boolean valid() {
 	if (type == Type.FACTORY) {
 	    int mini = 0;
 	    int maxi = Integer.MAX_VALUE;
@@ -79,7 +79,9 @@ public class Building implements Iterable <Cell> {
 		if (p.j > maxj)
 		    maxj = p.j;
 	    }
-	    return (maxi - mini <= 5) && (maxj - minj <= 5);
+	    if ( (maxi - mini > 5) || (maxj - minj > 5) )
+		return false;
+	    return ( (maxi - mini) * (maxj - minj) == size());
 	}
 	else if (type == Type.RESIDENCE) 
 	    return cells.size() == 5;

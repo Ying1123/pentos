@@ -7,7 +7,7 @@ Player
 The players must extend the "pentos/sim/Player.java" interface. An example
 dummy player is provided in "pentos/g0/Player.java". The player code must
 be on a separate directory/package and the basic class must be in "Player.java".
-For example, group 4 should have the main class in "pentos/g4/Player.java" under the pacakge pentos.g4
+For example, group 4 should have the main class in "pentos/g4/Player.java" under the pacakge pentos.
 
 The interface for a player specifies two methods, an "init()" method to
 initialize the player object and a "play()" method to return the next
@@ -24,24 +24,25 @@ The default sequencer generates random shapes for buildings and factories. Addit
 Simulator
 
 To run or compile the simulator, cd into the folder above pentos.
-To (re)compile the simulator on Unix & Mac OS X:   javac slather/sim/*.java
-To (re)compile the simulator on Windows:           javac slather\sim\*.java
-To run the simulator:  java slather.sim.Simulator <arguments>
+To (re)compile the simulator on Unix & Mac OS X:   javac pentos/sim/*.java
+To (re)compile the simulator on Windows:           javac pentos\sim\*.java
+To run the simulator:  java pentos.sim.Simulator <arguments>
 
 The simulator is written and tested using Java version 8 (jre/jdk 1.8).
 To check the Java virtual machine version:     java -version
 To check the Java bytecode compiler version:   javac -version
 Earlier versions of Java may (will probably) not work. The simulator is
 operating system (OS) independent and has been (successfully) tested on:
-  Microsoft Windows 10
+
   Apple Mac OS X Yosemite (10.10)
   GNU/Linux Ubuntu 16.04
+  Microsoft Windows 10 (running through Cygwin)
 
 The simulator arguments are:
  -g, --groups <group name, e.g. g0>
  -s, --sequencer <folder name containing sequencer, e.g. random>
      --gui
-     --nolog
+     --verbose
 
 If the GUI option is enabled, the simulator creates a visualization of
 the game as a dynamic HTML page. To view the GUI, open the browser on

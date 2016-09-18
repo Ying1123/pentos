@@ -204,7 +204,7 @@ function process(data)
     undraw();
     draw_grid(250, 50, 850, 650, 50, 50, "black");
     // draw for 1st player
-    var colors = ["mediumpurple", "black", "dimgrey", "green", "royalblue"];
+    var colors = ["orange", "black", "purple", "green", "blue"];
     draw_side ( 20,  40,  190, 690, group, score, cpu, colors);
     draw_shape(250,  50,  850, 650, 50, 50, cuts, colors, types, highlight == 0);
     return refresh;

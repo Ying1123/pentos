@@ -12,6 +12,8 @@ public class Player implements pentos.sim.Player {
     private Random gen = new Random();
     private Set<Cell> road_cells = new HashSet<Cell>();
 
+    private static int INF = (int)1e9;
+
     public void init() { // function is called once at the beginning before play is called
 
     }
@@ -29,6 +31,49 @@ public class Player implements pentos.sim.Player {
 			moves.add(new Move(true, request, p, ri, new HashSet<Cell>(), new HashSet<Cell>(), new HashSet<Cell>()));
 		}
 	    }
+
+	int[] score = new int[moves.size()];
+	int maxScore = -INF;
+	int which = -1;
+	for (int i = 0; i < moves.size(); ++i) {
+		score[i] = 0;
+		Move cur = moves.get(i);
+		Set<Cell> shiftedCells = new HashSet<Cell>();
+		for (Cell x : cur.requrest.rotations()[cur.rotation])
+			shiftedCells.add(new Cell(x.i + cur.location.i, x.j + cur.location.j));
+
+		Set<Cell> roadCells = findShortestRoad(shiftedCells, land);
+		if (roadCells == null) {
+			score[i] = -INF;
+			continue;
+		}
+		score[i] = -roadCells.size();
+		
+		if (request.type == Building.Type.RESIDENCE) {
+			if (!atEdge(shiftedCells, land)) score[i] += 50;
+			Set<Cell> markedForConstruction = new HashSet<Cell>();
+			markedForConstruction.addAll(roadCells);
+			cur.water = getWaterArea(shiftedCells, markedForConstruction, land);
+			markedForConstruction.addAll(cur.water);
+			cur.part = getParkArea(shiftedCells, markedForConstruction, land);
+			score[i] += calNeighborField(shiftedCells, land);
+		} else {
+			if (atEdge(shiftedCells, land)) score[i] += 50;
+			score[i] -= calNeighborField(shiftedCells, land);
+		}
+		
+		if (score[i] > maxScore) {
+			maxScore = score[i];
+			which = i;
+		}
+	}
+	if (which == -1) {
+		return new Move(false);
+	} else {
+		return moves.get(which);
+	}
+
+	/*
 	// choose a building placement at random
 	if (moves.isEmpty()) // reject if no valid placements
 	    return new Move(false);
@@ -55,6 +100,19 @@ public class Player implements pentos.sim.Player {
 	    else // reject placement if building cannot be connected by road
 		return new Move(false);
 	}
+	*/
+    }
+
+    private boolean atEdge(Set<Cell> bcells, Land land) {
+    }
+
+    private int calNeighborField(Set<Cell> bcells, Land land) {
+    }
+
+    private Set<Cell> getWaterArea(Set<Cell> bcells, Set<Cell> marked, Land land) {
+    }
+
+    private Set<Cell> getParkArea(Set<Cell> bcells, Set<Cell> marked, Land land) {
     }
     
     // build shortest sequence of road cells to connect to a set of cells b

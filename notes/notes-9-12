@@ -1,0 +1,48 @@
+Group assignments:
+
+1. Kailash, Ying, Chengyu, Jake
+2. David W, Eashwar, Adam
+3. Yufei, Vikas, Ling, Frank
+4. Lu, Lampros, Bruce
+5. Andar, Yogesh, Stephanie
+6. Rajan, Xi, David R
+7. Martina, Yueting, Florian
+8. Zhimao, Sharan, Zeynep
+9. Michael, Rajiv, Oliver
+10. Jillian, Jiacheng, Julian
+
+Q&A:
+buildings on the border are considered connected to roads. Simulator has "imaginary" road around the perimeter
+road,park,water cells are specified at the same time as when you accept a building request and place it
+
+Homework: do by tomorrow (Tues) evening:
+go hang out in a social place and talk about yourselves for 30 minutes. No discussion of projects allowed. Then spend 30 minutes coming up with list of 5 group norms and email them to the prof. 
+(will repeat for next group assignment)
+
+more Q&A:
+requests are just for building itself, not "building with adjacent park"
+fields/ponds can be shared between different buildings, but only if they are present at the time of the building request. No bonuses for old houses (you cannot go back after a sale has ended and ask for more money)
+can extend an existing field/pond by a small number of squares to reach a new building being placed and get bonus
+
+
+Strategy discussion:
+group factories in a separate spatial location to avoid "dead space" between factories and residences
+separate factories/residences into two corners
+factories get no field/pond bonuses so avoid putting them by factories
+factories can be easier to fit together since they are made of two rectangles
+factories fit with boundaries better because of the straight edge
+space adjacent to factories is "dead" to residences so might as well place parks/water/road there
+maximizing the surface adjacent to fields/ponds makes it easier to share between multiple residences
+can fit fields/ponds around the irregular residence shapes to make the combined shape more regular
+when the board gets more full, might want to start omitting ponds/fields in order to fit more buildings
+enumerate candidate residence positions and then pick one that maximizes a certain scoring function
+
+fields/ponds only give 2 bonus points per residence using it. If shared by two, it gets 1 point per cell, the same as an actual residence. Not worth placing fields/ponds that only give a bonus to one residence in terms of pure points per cell used
+
+as the board gets more filled, buildings become harder to place, so try to maximize the score of each building with fields/ponds
+
+sequencer can be arbitrary and unpredictable. but we may consider running two categories of tournaments, one where the requests are actually drawn from some (unknown) distribution and one where the requests are arbitrary
+
+
+Deliverable for next Monday 9/21:
+initial player that some strategy that is a first step towards a solution

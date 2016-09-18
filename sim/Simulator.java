@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class Simulator {
 
-    private static boolean log = true;
+    private static boolean log = false; // print output/scores and stuff. use --verbose to set to true
 
     private static final String root = "pentos";
 
@@ -51,8 +51,8 @@ class Simulator {
 		} else if (args[a].equals("--gui")) gui = true;
 		else if (args[a].equals("--gui-mrc"))
 		    gui = gui_manual_refresh_on_cutter = true;
-		else if (args[a].equals("--nolog"))
-		    log = false;
+		else if (args[a].equals("--verbose"))
+		    log = true;
 		else throw new IllegalArgumentException("Unknown argument: " + args[a]);
 	    g_class = load_player(group);
 	    s_class = load_sequencer(sequencer);
@@ -213,7 +213,6 @@ class Simulator {
 		    Cell x = road_cells.next();
 		    roadCells = roadCells + " " + x.i + "," + x.j;
 		}
-		//System.err.println("Player built road on cells" + roadCells);
 		road_cells = move.road.iterator();
 		while (road_cells.hasNext()) 
 		    land.buildRoad(road_cells.next());

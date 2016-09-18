@@ -113,8 +113,11 @@ public class Land {
 	Set<Cell> adjacent_points = new HashSet<Cell>();	
 	for (Cell p : building) {
 	    Cell[] adj = land[p.i+q.i][p.j+q.j].neighbors();
-	    for (Cell x : adj) 
-		adjacent_points.add(x); // also includes building cells but doesn't really matter for the following checks
+	    for (Cell a : adj) {
+		adjacent_points.add(a); // also includes building cells but doesn't really matter for the following checks
+		if (a.i == 0 || a.i == side-1 || a.j == 0 || a.j == side-1)
+		    existsRoad = true;
+	    }
 	}
 
 	// verify building is next to road
